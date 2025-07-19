@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Defender</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+        #gameContainer {
+            position: relative;
+            border: 2px solid #333;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        canvas {
+            display: block;
+            background-color: #0c0c0c;
+        }
+        #uiContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(20, 20, 20, 0.85);
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #444;
+            display: none; /* Hidden by default */
+        }
+        #modal h1 {
+            margin-top: 0;
+            font-size: 3rem;
+            color: #ff4141;
+        }
+        #modal p {
+            font-size: 1.2rem;
+        }
+        #restartButton {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #restartButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="uiContainer">
+            <span>SCORE: </span><span id="scoreEl">0</span>
+        </div>
+        <div id="modal">
+            <h1 id="finalScoreEl">0</h1>
+            <p>Points</p>
+            <button id="restartButton">Restart Game</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Game Setup ---
+        canvas.width = 800;
+        canvas.height = 600;
+        // Make it responsive on smaller screens
+        if (window.innerWidth < 800) {
+            canvas.width = window.innerWidth * 0.95;
+            canvas.height = window.innerHeight * 0.8;
+        }
+
+        const scoreEl = document.getElementById('scoreEl');
+        const modalEl = document.getElementById('modal');
+        const finalScoreEl = document.getElementById('finalScoreEl');
+        const restartButton = document.getElementById('restartButton');
+
+        let player, projectiles, asteroids, particles, score, animationId;
+
+        function init() {
+            player = new Player();
+            projectiles = [];
+            asteroids = [];
+            particles = [];
+            score = 0;
+            scoreEl.innerHTML = score;
+            finalScoreEl.innerHTML = score;
+        }
+
+        // --- Player Class ---
+        class Player {
+            constructor() {
+                this.position = { x: canvas.width / 2, y: canvas.height - 50 };
+                this.velocity = { x: 0, y: 0 };
+                this.width = 50;
+                this.height = 20;
+                this.speed = 7;
+                this.color = 'white';
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.position.x - this.width / 2, this.position.y, this.width, this.height);
+            }
+
+            update() {
+                this.position.x += this.velocity.x;
+
+                // Wall collision
+                if (this.position.x - this.width / 2 <= 0) this.position.x = this.width / 2;
+                if (this.position.x + this.width / 2 >= canvas.width) this.position.x = canvas.width - this.width / 2;
+                
+                this.draw();
+            }
+
+            shoot() {
+                projectiles.push(new Projectile(
+                    this.position.x,
+                    this.position.y
+                ));
+            }
+        }
+
+        // --- Projectile Class ---
+        class Projectile {
+            constructor(x, y) {
+                this.position = { x, y };
+                this.velocity = { x: 0, y: -7 };
+                this.radius = 4;
+                this.color = '#8eff8e';
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update() {
+                this.position.y += this.velocity.y;
+                this.draw();
+            }
+        }
+
+        // --- Asteroid Class ---
+        class Asteroid {
+            constructor(x, y, radius, color, velocity) {
+                this.position = { x, y };
+                this.velocity = velocity;
+                this.radius = radius;
+                this.color = color;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update() {
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                this.draw();
+            }
+        }
+
+        // --- Particle Class (for explosions) ---
+        class Particle {
+            constructor(x, y, radius, color, velocity) {
+                this.position = { x, y };
+                this.velocity = velocity;
+                this.radius = radius;
+                this.color = color;
+                this.opacity = 1;
+                this.friction = 0.99;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+                ctx.restore();
+            }
+
+            update() {
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                this.opacity -= 0.02;
+                this.draw();
+            }
+        }
+
+        // --- Spawning Asteroids ---
+        let spawnInterval;
+        function spawnAsteroids() {
+            spawnInterval = setInterval(() => {
+                const radius = Math.random() * (30 - 10) + 10;
+                const x = Math.random() < 0.5 ? 0 - radius : canvas.width + radius;
+                const y = Math.random() * canvas.height * 0.7;
+                const angle = Math.atan2(canvas.height / 2 - y, canvas.width / 2 - x);
+                const speed = 1.5 + Math.random();
+                const velocity = {
+                    x: Math.cos(angle) * speed,
+                    y: Math.sin(angle) * speed
+                };
+                const color = `hsl(${Math.random() * 360}, 50%, 50%)`;
+                asteroids.push(new Asteroid(x, y, radius, color, velocity));
+            }, 1200);
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            ctx.fillStyle = 'rgba(12, 12, 12, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            player.update();
+
+            // Update particles
+            particles.forEach((particle, index) => {
+                if (particle.opacity <= 0) {
+                    particles.splice(index, 1);
+                } else {
+                    particle.update();
+                }
+            });
+
+            // Update projectiles
+            projectiles.forEach((projectile, pIndex) => {
+                projectile.update();
+                if (projectile.position.y + projectile.radius < 0) {
+                    setTimeout(() => projectiles.splice(pIndex, 1), 0);
+                }
+            });
+
+            // Update asteroids and check for collisions
+            asteroids.forEach((asteroid, aIndex) => {
+                asteroid.update();
+
+                // Collision: Asteroid and Player (Game Over)
+                const distPlayer = Math.hypot(player.position.x - asteroid.position.x, player.position.y - asteroid.position.y);
+                if (distPlayer - asteroid.radius - player.height < 1) {
+                    clearInterval(spawnInterval);
+                    cancelAnimationFrame(animationId);
+                    modalEl.style.display = 'flex';
+                    finalScoreEl.innerHTML = score;
+                }
+
+                // Collision: Asteroid and Projectile
+                projectiles.forEach((projectile, pIndex) => {
+                    const dist = Math.hypot(projectile.position.x - asteroid.position.x, projectile.position.y - asteroid.position.y);
+                    if (dist - asteroid.radius - projectile.radius < 1) {
+                        // Create explosion particles
+                        for (let i = 0; i < asteroid.radius * 2; i++) {
+                            particles.push(new Particle(
+                                projectile.position.x, projectile.position.y, Math.random() * 2, asteroid.color,
+                                { x: (Math.random() - 0.5) * (Math.random() * 6), y: (Math.random() - 0.5) * (Math.random() * 6) }
+                            ));
+                        }
+                        
+                        // Update score
+                        score += 100;
+                        scoreEl.innerHTML = score;
+
+                        setTimeout(() => {
+                            asteroids.splice(aIndex, 1);
+                            projectiles.splice(pIndex, 1);
+                        }, 0);
+                    }
+                });
+            });
+        }
+
+        // --- Controls ---
+        const keys = {
+            ArrowLeft: { pressed: false },
+            ArrowRight: { pressed: false }
+        };
+
+        window.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    keys.ArrowLeft.pressed = true;
+                    player.velocity.x = -player.speed;
+                    break;
+                case 'ArrowRight':
+                    keys.ArrowRight.pressed = true;
+                    player.velocity.x = player.speed;
+                    break;
+                case ' ':
+                    player.shoot();
+                    break;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    keys.ArrowLeft.pressed = false;
+                    if (!keys.ArrowRight.pressed) player.velocity.x = 0;
+                    break;
+                case 'ArrowRight':
+                    keys.ArrowRight.pressed = false;
+                    if (!keys.ArrowLeft.pressed) player.velocity.x = 0;
+                    break;
+            }
+        });
+        
+        // --- Restart Game ---
+        restartButton.addEventListener('click', () => {
+             modalEl.style.display = 'none';
+             init();
+             animate();
+             spawnAsteroids();
+        });
+
+        // --- Start Game ---
+        init();
+        animate();
+        spawnAsteroids();
+    </script>
+</body>
+</html>
