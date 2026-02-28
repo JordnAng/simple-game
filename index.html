@@ -3,893 +3,1333 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Defender Pro</title>
+    <title>ContentHub - Podcast, Dashboard & Blog</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --accent: #06b6d4;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            margin: 0;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
-            color: #fff;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Navigation ── */
+        nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
-            font-family: 'Courier New', Courier, monospace;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .nav-link {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover { color: var(--text); background: var(--bg-card); }
+        .nav-link.active { color: var(--primary-light); background: rgba(99,102,241,0.12); }
+
+        /* ── Main Layout ── */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ── Page Header ── */
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        /* ── Upload Zone ── */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(99,102,241,0.03);
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.08);
+        }
+
+        .upload-zone .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .upload-zone .label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone .hint {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        input[type="file"] { display: none; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .btn-danger {
+            background: rgba(239,68,68,0.15);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+        .btn-sm {
+            padding: 0.35rem 0.8rem;
+            font-size: 0.82rem;
+        }
+
+        /* ── Podcast Section ── */
+        .podcast-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .podcast-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: background 0.2s;
+        }
+
+        .podcast-item:hover { background: var(--bg-card-hover); }
+
+        .podcast-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .podcast-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .podcast-info h4 {
+            font-size: 1rem;
+            margin-bottom: 0.3rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .podcast-info span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .podcast-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .play-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .play-btn:hover { background: var(--primary-dark); }
+
+        /* ── Audio Player Bar ── */
+        .audio-player-bar {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .audio-player-bar.visible { display: flex; }
+
+        .audio-player-bar .now-playing {
+            font-weight: 600;
+            font-size: 0.9rem;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .audio-player-bar audio {
+            flex: 1;
+            height: 36px;
+        }
+
+        audio::-webkit-media-controls-panel {
+            background: var(--bg-card-hover);
+        }
+
+        /* ── Dashboard Section ── */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .dashboard-grid .card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .stat-card .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        /* ── Data Table ── */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th, .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background: rgba(99,102,241,0.1);
+            color: var(--primary-light);
+            font-weight: 600;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(99,102,241,0.04);
+        }
+
+        .sheet-tabs {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .sheet-tab {
+            padding: 0.4rem 1rem;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .sheet-tab:hover { color: var(--text); border-color: var(--primary); }
+        .sheet-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* ── Blog Section ── */
+        .blog-editor {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .blog-editor input,
+        .blog-editor textarea,
+        .blog-editor select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .blog-editor input:focus,
+        .blog-editor textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .blog-editor textarea {
+            min-height: 200px;
+        }
+
+        .blog-editor .editor-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .blog-editor .editor-row > * {
+            flex: 1;
+        }
+
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .blog-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .blog-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .blog-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+        }
+
+        .blog-card-placeholder {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .blog-card-body {
+            padding: 1.25rem;
+        }
+
+        .blog-card-body .tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            background: rgba(99,102,241,0.15);
+            color: var(--primary-light);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .blog-card-body h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .blog-card-body p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        #gameContainer {
-            position: relative;
-            border: 3px solid #4a90e2;
-            box-shadow: 0 0 30px rgba(74, 144, 226, 0.3);
-            border-radius: 10px;
-        }
-        canvas {
-            display: block;
-            background: radial-gradient(circle at center, #1a1a2e 0%, #0c0c0c 100%);
-            border-radius: 7px;
-        }
-        #uiContainer {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+
+        .blog-card-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0.75rem 1.25rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Blog Detail Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            max-width: 800px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: var(--bg);
+            color: var(--text-muted);
             font-size: 1.2rem;
-            text-shadow: 2px 2px 4px #000;
-            z-index: 10;
-        }
-        #leftUI {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        #rightUI {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        #healthBar {
-            width: 150px;
-            height: 20px;
-            background: rgba(255, 0, 0, 0.3);
-            border: 2px solid #ff0000;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        #healthFill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ff6b6b);
-            transition: width 0.3s ease;
-        }
-        #powerUpIndicator {
-            display: flex;
-            gap: 5px;
-        }
-        .powerUpIcon {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid #fff;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
         }
-        .rapidFire { background: #ff6b6b; }
-        .shield { background: #4ecdc4; }
-        .multiShot { background: #45b7d1; }
-        .health { background: #96ceb4; }
-        #modal {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 60, 0.95));
-            padding: 40px;
-            border-radius: 15px;
-            text-align: center;
-            border: 2px solid #4a90e2;
-            display: none;
-            box-shadow: 0 0 30px rgba(74, 144, 226, 0.5);
-            min-width: 300px;
+
+        .modal-close:hover { color: var(--text); }
+
+        .modal-content h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            padding-right: 2rem;
         }
-        #modal h1 {
-            margin-top: 0;
-            font-size: 3rem;
-            color: #4a90e2;
-            text-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
-        }
-        #modal p {
-            font-size: 1.2rem;
-            margin: 10px 0;
-        }
-        #restartButton {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            background: linear-gradient(45deg, #4CAF50, #45a049);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 10px;
-        }
-        #restartButton:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
-        }
-        #controls {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+
+        .modal-meta {
+            color: var(--text-muted);
             font-size: 0.9rem;
-            opacity: 0.7;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .modal-body {
+            line-height: 1.8;
+            font-size: 1.05rem;
+            white-space: pre-wrap;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* ── Empty State ── */
+        .empty-state {
             text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
         }
-        .bossWarning {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff4141;
-            font-size: 2rem;
-            font-weight: bold;
-            text-shadow: 0 0 20px #ff4141;
-            animation: pulse 1s infinite;
-            z-index: 100;
+
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
+        .empty-state h3 { margin-bottom: 0.5rem; color: var(--text); }
+
+        /* ── Toast ── */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .levelUp {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #4a90e2;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-shadow: 0 0 15px #4a90e2;
-            animation: levelUpAnim 2s ease-out;
-            z-index: 100;
+
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-        @keyframes levelUpAnim {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(1) translateY(-50px); }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            nav { padding: 0 1rem; }
+            main { padding: 1rem; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .blog-grid { grid-template-columns: 1fr; }
+            .blog-editor .editor-row { flex-direction: column; }
+            .stat-cards { grid-template-columns: repeat(2, 1fr); }
+            .audio-player-bar { flex-wrap: wrap; }
+            .audio-player-bar .now-playing { max-width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .nav-links { gap: 0; }
+            .nav-link { padding: 0.5rem 0.7rem; font-size: 0.85rem; }
+            .stat-cards { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        <div id="uiContainer">
-            <div id="leftUI">
-                <div>SCORE: <span id="scoreEl">0</span></div>
-                <div>LEVEL: <span id="levelEl">1</span></div>
-                <div>HEALTH: <span id="healthEl">100</span></div>
-            </div>
-            <div id="rightUI">
-                <div id="powerUpIndicator"></div>
-                <div id="healthBar">
-                    <div id="healthFill"></div>
-                </div>
+
+<!-- Navigation -->
+<nav>
+    <div class="logo">ContentHub</div>
+    <div class="nav-links">
+        <button class="nav-link active" data-page="podcast">Podcast</button>
+        <button class="nav-link" data-page="dashboard">Dashboard</button>
+        <button class="nav-link" data-page="blog">Blog</button>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main>
+
+    <!-- ════════ PODCAST PAGE ════════ -->
+    <div id="page-podcast" class="page active">
+        <div class="page-header">
+            <h1>Podcast</h1>
+            <p>Upload and manage your podcast episodes</p>
+        </div>
+
+        <div class="card">
+            <div class="upload-zone" id="podcast-upload-zone">
+                <input type="file" id="podcast-file" accept="audio/*" multiple>
+                <span class="icon">&#127911;</span>
+                <div class="label">Drop audio files here or click to upload</div>
+                <div class="hint">Supports MP3, WAV, OGG, M4A</div>
             </div>
         </div>
-        <div id="controls">
-            <div>ARROWS: Move | SPACE: Shoot | P: Pause</div>
+
+        <div class="audio-player-bar" id="audio-player-bar">
+            <button class="play-btn" id="global-play-btn">&#9654;</button>
+            <span class="now-playing" id="now-playing-label">—</span>
+            <audio id="global-audio" controls></audio>
         </div>
-        <div id="modal">
-            <h1 id="finalScoreEl">0</h1>
-            <p id="gameOverText">Game Over!</p>
-            <p>Level Reached: <span id="finalLevelEl">1</span></p>
-            <p>High Score: <span id="highScoreEl">0</span></p>
-            <button id="restartButton">Restart Game</button>
+
+        <div id="podcast-list" class="podcast-list"></div>
+        <div id="podcast-empty" class="empty-state">
+            <span class="icon">&#127911;</span>
+            <h3>No podcasts yet</h3>
+            <p>Upload your first audio file to get started</p>
         </div>
     </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+    <!-- ════════ DASHBOARD PAGE ════════ -->
+    <div id="page-dashboard" class="page">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Upload an Excel file to generate interactive charts and tables</p>
+        </div>
 
-        // --- Game Setup ---
-        canvas.width = 800;
-        canvas.height = 600;
-        if (window.innerWidth < 800) {
-            canvas.width = window.innerWidth * 0.95;
-            canvas.height = window.innerHeight * 0.8;
-        }
+        <div class="card" id="dashboard-upload-card">
+            <div class="upload-zone" id="dashboard-upload-zone">
+                <input type="file" id="dashboard-file" accept=".xlsx,.xls,.csv">
+                <span class="icon">&#128202;</span>
+                <div class="label">Drop an Excel or CSV file here</div>
+                <div class="hint">Supports .xlsx, .xls, .csv</div>
+            </div>
+        </div>
 
-        // UI Elements
-        const scoreEl = document.getElementById('scoreEl');
-        const levelEl = document.getElementById('levelEl');
-        const healthEl = document.getElementById('healthEl');
-        const healthFill = document.getElementById('healthFill');
-        const powerUpIndicator = document.getElementById('powerUpIndicator');
-        const modalEl = document.getElementById('modal');
-        const finalScoreEl = document.getElementById('finalScoreEl');
-        const finalLevelEl = document.getElementById('finalLevelEl');
-        const highScoreEl = document.getElementById('highScoreEl');
-        const gameOverText = document.getElementById('gameOverText');
-        const restartButton = document.getElementById('restartButton');
+        <div id="dashboard-content" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div class="sheet-tabs" id="sheet-tabs"></div>
+                <button class="btn btn-danger btn-sm" id="clear-dashboard-btn">Clear Dashboard</button>
+            </div>
 
-        // Game State
-        let player, projectiles, enemies, particles, powerUps, score, level, gameState, animationId;
-        let spawnInterval, bossSpawnInterval;
-        let highScore = localStorage.getItem('spaceDefenderHighScore') || 0;
+            <div class="stat-cards" id="stat-cards"></div>
 
-        // Game States
-        const GAME_STATES = {
-            PLAYING: 'playing',
-            PAUSED: 'paused',
-            GAME_OVER: 'gameOver'
-        };
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>Bar Chart</h3>
+                    <div class="chart-container"><canvas id="barChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>Line Chart</h3>
+                    <div class="chart-container"><canvas id="lineChart"></canvas></div>
+                </div>
+                <div class="card full-width">
+                    <h3>Data Table</h3>
+                    <div class="table-wrapper" style="max-height:400px; overflow-y:auto;">
+                        <table class="data-table" id="data-table">
+                            <thead id="table-head"></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function init() {
-            player = new Player();
-            projectiles = [];
-            enemies = [];
-            particles = [];
-            powerUps = [];
-            score = 0;
-            level = 1;
-            gameState = GAME_STATES.PLAYING;
-            
-            updateUI();
-            highScoreEl.innerHTML = highScore;
-        }
+    <!-- ════════ BLOG PAGE ════════ -->
+    <div id="page-blog" class="page">
+        <div class="page-header">
+            <h1>Blog</h1>
+            <p>Write and publish blog posts</p>
+        </div>
 
-        // --- Player Class ---
-        class Player {
-            constructor() {
-                this.position = { x: canvas.width / 2, y: canvas.height - 50 };
-                this.velocity = { x: 0, y: 0 };
-                this.width = 50;
-                this.height = 20;
-                this.speed = 7;
-                this.maxHealth = 100;
-                this.health = this.maxHealth;
-                this.color = '#4a90e2';
-                this.shield = false;
-                this.rapidFire = false;
-                this.multiShot = false;
-                this.lastShot = 0;
-                this.shootCooldown = 300;
-                this.powerUpTimers = {
-                    rapidFire: 0,
-                    shield: 0,
-                    multiShot: 0
-                };
+        <div class="card" id="blog-editor-card">
+            <h3>New Post</h3>
+            <div class="blog-editor">
+                <input type="text" id="blog-title" placeholder="Post title">
+                <div class="editor-row">
+                    <input type="text" id="blog-author" placeholder="Author name">
+                    <select id="blog-category">
+                        <option value="General">General</option>
+                        <option value="Tech">Tech</option>
+                        <option value="Lifestyle">Lifestyle</option>
+                        <option value="Business">Business</option>
+                        <option value="Education">Education</option>
+                    </select>
+                </div>
+                <div class="upload-zone" id="blog-img-zone" style="padding:1.5rem;">
+                    <input type="file" id="blog-img-file" accept="image/*">
+                    <div class="label" style="font-size:0.95rem;">Click to add a cover image (optional)</div>
+                </div>
+                <img id="blog-img-preview" style="display:none; max-width:100%; max-height:200px; border-radius:8px; object-fit:cover;">
+                <textarea id="blog-content" placeholder="Write your blog post content here..."></textarea>
+                <div style="display:flex; gap:0.5rem;">
+                    <button class="btn btn-primary" id="publish-blog-btn">Publish Post</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="blog-grid" class="blog-grid" style="margin-top:1.5rem;"></div>
+        <div id="blog-empty" class="empty-state" style="margin-top:1rem;">
+            <span class="icon">&#128221;</span>
+            <h3>No blog posts yet</h3>
+            <p>Write your first post above</p>
+        </div>
+    </div>
+
+</main>
+
+<!-- Blog Detail Modal -->
+<div class="modal-overlay" id="blog-modal">
+    <div class="modal-content">
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+        <h1 id="modal-title"></h1>
+        <div class="modal-meta">
+            <span id="modal-author"></span>
+            <span id="modal-date"></span>
+            <span id="modal-category"></span>
+        </div>
+        <img id="modal-img" style="display:none; max-width:100%; border-radius:8px; margin-bottom:1rem;">
+        <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById('page-' + link.dataset.page).classList.add('active');
+    });
+});
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + type;
+    toast.innerHTML = (type === 'success' ? '&#10003; ' : '&#10007; ') + message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+
+// ══════════════════════════════════════
+//  DRAG & DROP HELPERS
+// ══════════════════════════════════════
+function setupDropZone(zoneEl, inputEl, onFiles) {
+    zoneEl.addEventListener('click', () => inputEl.click());
+    inputEl.addEventListener('change', () => {
+        if (inputEl.files.length) onFiles(inputEl.files);
+        inputEl.value = '';
+    });
+    zoneEl.addEventListener('dragover', e => { e.preventDefault(); zoneEl.classList.add('dragover'); });
+    zoneEl.addEventListener('dragleave', () => zoneEl.classList.remove('dragover'));
+    zoneEl.addEventListener('drop', e => {
+        e.preventDefault();
+        zoneEl.classList.remove('dragover');
+        if (e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+    });
+}
+
+// ══════════════════════════════════════
+//  PODCAST
+// ══════════════════════════════════════
+let podcasts = JSON.parse(localStorage.getItem('podcasts') || '[]');
+const globalAudio = document.getElementById('global-audio');
+const playerBar = document.getElementById('audio-player-bar');
+const nowPlayingLabel = document.getElementById('now-playing-label');
+const globalPlayBtn = document.getElementById('global-play-btn');
+let currentPodcastId = null;
+
+// Audio blob store (objectURLs) — rebuild from stored base64 on load
+let podcastURLs = {};
+
+function savePodcasts() {
+    localStorage.setItem('podcasts', JSON.stringify(podcasts));
+}
+
+function formatDuration(sec) {
+    if (!sec || isNaN(sec)) return '--:--';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function playPodcast(id) {
+    const pod = podcasts.find(p => p.id === id);
+    if (!pod) return;
+    currentPodcastId = id;
+
+    if (podcastURLs[id]) {
+        globalAudio.src = podcastURLs[id];
+    } else {
+        // rebuild from base64
+        const byteStr = atob(pod.data.split(',')[1]);
+        const mime = pod.data.split(',')[0].match(/:(.*?);/)[1];
+        const arr = new Uint8Array(byteStr.length);
+        for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+        const blob = new Blob([arr], { type: mime });
+        const url = URL.createObjectURL(blob);
+        podcastURLs[id] = url;
+        globalAudio.src = url;
+    }
+
+    globalAudio.play();
+    nowPlayingLabel.textContent = pod.name;
+    playerBar.classList.add('visible');
+    globalPlayBtn.innerHTML = '&#9646;&#9646;';
+    renderPodcasts();
+}
+
+globalPlayBtn.addEventListener('click', () => {
+    if (globalAudio.paused) {
+        globalAudio.play();
+        globalPlayBtn.innerHTML = '&#9646;&#9646;';
+    } else {
+        globalAudio.pause();
+        globalPlayBtn.innerHTML = '&#9654;';
+    }
+});
+
+globalAudio.addEventListener('ended', () => {
+    globalPlayBtn.innerHTML = '&#9654;';
+    // Auto-play next
+    const idx = podcasts.findIndex(p => p.id === currentPodcastId);
+    if (idx >= 0 && idx < podcasts.length - 1) {
+        playPodcast(podcasts[idx + 1].id);
+    }
+});
+
+function deletePodcast(id) {
+    podcasts = podcasts.filter(p => p.id !== id);
+    savePodcasts();
+    if (currentPodcastId === id) {
+        globalAudio.pause();
+        globalAudio.src = '';
+        playerBar.classList.remove('visible');
+        currentPodcastId = null;
+    }
+    if (podcastURLs[id]) {
+        URL.revokeObjectURL(podcastURLs[id]);
+        delete podcastURLs[id];
+    }
+    renderPodcasts();
+    showToast('Podcast removed');
+}
+
+function renderPodcasts() {
+    const list = document.getElementById('podcast-list');
+    const empty = document.getElementById('podcast-empty');
+    if (podcasts.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+    list.innerHTML = podcasts.map(p => `
+        <div class="podcast-item">
+            <div class="podcast-icon">${currentPodcastId === p.id ? '&#9835;' : '&#127911;'}</div>
+            <div class="podcast-info">
+                <h4>${escapeHtml(p.name)}</h4>
+                <span>${formatFileSize(p.size)} &middot; ${p.date}</span>
+            </div>
+            <div class="podcast-controls">
+                <button class="play-btn" onclick="playPodcast('${p.id}')" title="Play">
+                    ${currentPodcastId === p.id && !globalAudio.paused ? '&#9646;&#9646;' : '&#9654;'}
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deletePodcast('${p.id}')">&#128465;</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+setupDropZone(
+    document.getElementById('podcast-upload-zone'),
+    document.getElementById('podcast-file'),
+    files => {
+        Array.from(files).forEach(file => {
+            if (!file.type.startsWith('audio/')) {
+                showToast('Skipped non-audio file: ' + file.name, 'error');
+                return;
             }
-
-            draw() {
-                ctx.save();
-                
-                // Shield effect
-                if (this.shield) {
-                    ctx.beginPath();
-                    ctx.arc(this.position.x, this.position.y + this.height/2, this.width/2 + 10, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#4ecdc4';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                }
-
-                // Player body
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.position.x - this.width / 2, this.position.y, this.width, this.height);
-                
-                // Player details
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(this.position.x - 2, this.position.y + 5, 4, 10);
-                
-                ctx.restore();
-            }
-
-            update() {
-                this.position.x += this.velocity.x;
-
-                // Wall collision
-                if (this.position.x - this.width / 2 <= 0) this.position.x = this.width / 2;
-                if (this.position.x + this.width / 2 >= canvas.width) this.position.x = canvas.width - this.width / 2;
-                
-                // Update power-up timers
-                Object.keys(this.powerUpTimers).forEach(key => {
-                    if (this.powerUpTimers[key] > 0) {
-                        this.powerUpTimers[key] -= 16; // Assuming 60fps
-                        if (this.powerUpTimers[key] <= 0) {
-                            this[key] = false;
-                            updatePowerUpIndicator();
-                        }
-                    }
+            const reader = new FileReader();
+            reader.onload = e => {
+                const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                podcasts.push({
+                    id,
+                    name: file.name.replace(/\.[^.]+$/, ''),
+                    size: file.size,
+                    type: file.type,
+                    date: new Date().toLocaleDateString(),
+                    data: e.target.result
                 });
-                
-                this.draw();
-            }
+                savePodcasts();
+                renderPodcasts();
+                showToast('Uploaded: ' + file.name);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+);
 
-            shoot() {
-                const now = Date.now();
-                if (now - this.lastShot < this.shootCooldown) return;
-                
-                this.lastShot = now;
-                
-                if (this.multiShot) {
-                    // Triple shot
-                    projectiles.push(new Projectile(this.position.x - 15, this.position.y, 0, -8));
-                    projectiles.push(new Projectile(this.position.x, this.position.y, 0, -8));
-                    projectiles.push(new Projectile(this.position.x + 15, this.position.y, 0, -8));
-                } else {
-                    projectiles.push(new Projectile(this.position.x, this.position.y, 0, -8));
+renderPodcasts();
+
+// ══════════════════════════════════════
+//  DASHBOARD (Excel → Charts + Table)
+// ══════════════════════════════════════
+let dashboardCharts = { bar: null, line: null };
+let workbookData = null;
+
+function clearDashboard() {
+    workbookData = null;
+    document.getElementById('dashboard-content').style.display = 'none';
+    document.getElementById('dashboard-upload-card').style.display = 'block';
+    if (dashboardCharts.bar) { dashboardCharts.bar.destroy(); dashboardCharts.bar = null; }
+    if (dashboardCharts.line) { dashboardCharts.line.destroy(); dashboardCharts.line = null; }
+    localStorage.removeItem('dashboardData');
+    showToast('Dashboard cleared');
+}
+
+document.getElementById('clear-dashboard-btn').addEventListener('click', clearDashboard);
+
+function processWorkbook(wb) {
+    workbookData = {};
+    wb.SheetNames.forEach(name => {
+        workbookData[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '' });
+    });
+    localStorage.setItem('dashboardData', JSON.stringify(workbookData));
+    renderDashboard(Object.keys(workbookData)[0]);
+}
+
+function renderDashboard(activeSheet) {
+    if (!workbookData || Object.keys(workbookData).length === 0) return;
+
+    document.getElementById('dashboard-upload-card').style.display = 'none';
+    document.getElementById('dashboard-content').style.display = 'block';
+
+    // Sheet tabs
+    const tabsEl = document.getElementById('sheet-tabs');
+    tabsEl.innerHTML = Object.keys(workbookData).map(name =>
+        `<button class="sheet-tab ${name === activeSheet ? 'active' : ''}" onclick="renderDashboard('${name}')">${escapeHtml(name)}</button>`
+    ).join('');
+
+    const data = workbookData[activeSheet];
+    if (!data || data.length === 0) {
+        document.getElementById('stat-cards').innerHTML = '<p style="color:var(--text-muted);">Sheet is empty</p>';
+        document.getElementById('table-head').innerHTML = '';
+        document.getElementById('table-body').innerHTML = '';
+        return;
+    }
+
+    const headers = Object.keys(data[0]);
+
+    // Identify numeric columns
+    const numericCols = headers.filter(h =>
+        data.some(row => row[h] !== '' && !isNaN(Number(row[h])))
+    );
+
+    // Stat cards — show summary of numeric columns
+    const statCardsEl = document.getElementById('stat-cards');
+    statCardsEl.innerHTML = '';
+
+    // Total rows stat
+    statCardsEl.innerHTML += `
+        <div class="stat-card">
+            <div class="stat-value">${data.length}</div>
+            <div class="stat-label">Total Rows</div>
+        </div>
+    `;
+    statCardsEl.innerHTML += `
+        <div class="stat-card">
+            <div class="stat-value">${headers.length}</div>
+            <div class="stat-label">Columns</div>
+        </div>
+    `;
+
+    numericCols.slice(0, 3).forEach(col => {
+        const vals = data.map(r => Number(r[col])).filter(v => !isNaN(v));
+        const sum = vals.reduce((a, b) => a + b, 0);
+        const avg = vals.length ? (sum / vals.length) : 0;
+        statCardsEl.innerHTML += `
+            <div class="stat-card">
+                <div class="stat-value">${avg % 1 === 0 ? avg.toLocaleString() : avg.toFixed(2)}</div>
+                <div class="stat-label">Avg ${escapeHtml(col)}</div>
+            </div>
+        `;
+    });
+
+    // Table
+    const tableHead = document.getElementById('table-head');
+    const tableBody = document.getElementById('table-body');
+    tableHead.innerHTML = '<tr>' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>';
+    tableBody.innerHTML = data.slice(0, 200).map(row =>
+        '<tr>' + headers.map(h => `<td>${escapeHtml(String(row[h]))}</td>`).join('') + '</tr>'
+    ).join('');
+
+    // Charts
+    const chartColors = [
+        'rgba(99,102,241,0.7)', 'rgba(6,182,212,0.7)', 'rgba(34,197,94,0.7)',
+        'rgba(245,158,11,0.7)', 'rgba(239,68,68,0.7)', 'rgba(168,85,247,0.7)'
+    ];
+
+    // Determine label column (first non-numeric) and value columns
+    const labelCol = headers.find(h => !numericCols.includes(h)) || headers[0];
+    const labels = data.slice(0, 30).map(r => String(r[labelCol]).slice(0, 20));
+    const valueCols = numericCols.slice(0, 4);
+
+    if (dashboardCharts.bar) dashboardCharts.bar.destroy();
+    if (dashboardCharts.line) dashboardCharts.line.destroy();
+
+    if (valueCols.length > 0) {
+        const datasets = valueCols.map((col, i) => ({
+            label: col,
+            data: data.slice(0, 30).map(r => Number(r[col]) || 0),
+            backgroundColor: chartColors[i % chartColors.length],
+            borderColor: chartColors[i % chartColors.length].replace('0.7', '1'),
+            borderWidth: 2
+        }));
+
+        dashboardCharts.bar = new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.4)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.4)' } }
                 }
             }
+        });
 
-            takeDamage(damage) {
-                if (this.shield) return false;
-                
-                this.health -= damage;
-                if (this.health <= 0) {
-                    this.health = 0;
-                    return true; // Player died
+        const lineDatasets = valueCols.map((col, i) => ({
+            label: col,
+            data: data.slice(0, 30).map(r => Number(r[col]) || 0),
+            borderColor: chartColors[i % chartColors.length].replace('0.7', '1'),
+            backgroundColor: chartColors[i % chartColors.length].replace('0.7', '0.1'),
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 3
+        }));
+
+        dashboardCharts.line = new Chart(document.getElementById('lineChart'), {
+            type: 'line',
+            data: { labels, datasets: lineDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.4)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.4)' } }
                 }
-                updateUI();
-                return false;
             }
+        });
+    }
+}
 
-            heal(amount) {
-                this.health = Math.min(this.maxHealth, this.health + amount);
-                updateUI();
+setupDropZone(
+    document.getElementById('dashboard-upload-zone'),
+    document.getElementById('dashboard-file'),
+    files => {
+        const file = files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                processWorkbook(wb);
+                showToast('Dashboard created from ' + file.name);
+            } catch (err) {
+                showToast('Failed to parse file: ' + err.message, 'error');
             }
-        }
-
-        // --- Projectile Class ---
-        class Projectile {
-            constructor(x, y, vx = 0, vy = -8) {
-                this.position = { x, y };
-                this.velocity = { x: vx, y: vy };
-                this.radius = 4;
-                this.color = '#8eff8e';
-                this.damage = 25;
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
-            }
-
-            update() {
-                this.position.x += this.velocity.x;
-                this.position.y += this.velocity.y;
-                this.draw();
-            }
-        }
-
-        // --- Enemy Base Class ---
-        class Enemy {
-            constructor(x, y, health, speed, color, size) {
-                this.position = { x, y };
-                this.velocity = { x: 0, y: speed };
-                this.health = health;
-                this.maxHealth = health;
-                this.color = color;
-                this.size = size;
-                this.scoreValue = health * 10;
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.position.x - this.size/2, this.position.y - this.size/2, this.size, this.size);
-                
-                // Health bar
-                const healthPercent = this.health / this.maxHealth;
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(this.position.x - this.size/2, this.position.y - this.size/2 - 10, this.size, 5);
-                ctx.fillStyle = '#00ff00';
-                ctx.fillRect(this.position.x - this.size/2, this.position.y - this.size/2 - 10, this.size * healthPercent, 5);
-            }
-
-            update() {
-                this.position.x += this.velocity.x;
-                this.position.y += this.velocity.y;
-                this.draw();
-            }
-
-            takeDamage(damage) {
-                this.health -= damage;
-                return this.health <= 0;
-            }
-        }
-
-        // --- Asteroid Enemy ---
-        class Asteroid extends Enemy {
-            constructor(x, y) {
-                const radius = Math.random() * (30 - 15) + 15;
-                super(x, y, radius * 2, 1 + Math.random() * 2, `hsl(${Math.random() * 360}, 50%, 50%)`, radius * 2);
-                this.radius = radius;
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
-                
-                // Health bar
-                const healthPercent = this.health / this.maxHealth;
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(this.position.x - this.radius, this.position.y - this.radius - 15, this.radius * 2, 5);
-                ctx.fillStyle = '#00ff00';
-                ctx.fillRect(this.position.x - this.radius, this.position.y - this.radius - 15, this.radius * 2 * healthPercent, 5);
-            }
-        }
-
-        // --- Fast Enemy ---
-        class FastEnemy extends Enemy {
-            constructor(x, y) {
-                super(x, y, 30, 4, '#ff6b6b', 20);
-                this.velocity.x = (Math.random() - 0.5) * 4;
-            }
-        }
-
-        // --- Tank Enemy ---
-        class TankEnemy extends Enemy {
-            constructor(x, y) {
-                super(x, y, 150, 0.5, '#8b4513', 40);
-            }
-        }
-
-        // --- Boss Enemy ---
-        class BossEnemy extends Enemy {
-            constructor() {
-                super(canvas.width / 2, -50, 500, 1, '#ff4141', 80);
-                this.phase = 0;
-                this.lastShot = 0;
-                this.shootCooldown = 1000;
-            }
-
-            draw() {
-                // Boss body
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.position.x - this.size/2, this.position.y - this.size/2, this.size, this.size);
-                
-                // Boss details
-                ctx.fillStyle = '#000';
-                ctx.fillRect(this.position.x - this.size/3, this.position.y - this.size/3, this.size/1.5, this.size/1.5);
-                
-                // Health bar
-                const healthPercent = this.health / this.maxHealth;
-                ctx.fillStyle = '#ff0000';
-                ctx.fillRect(50, 50, canvas.width - 100, 20);
-                ctx.fillStyle = '#00ff00';
-                ctx.fillRect(50, 50, (canvas.width - 100) * healthPercent, 20);
-            }
-
-            update() {
-                this.position.y += this.velocity.y;
-                
-                // Stop at top
-                if (this.position.y < 100) {
-                    this.position.y = 100;
-                    this.velocity.y = 0;
-                }
-                
-                // Shoot at player
-                const now = Date.now();
-                if (now - this.lastShot > this.shootCooldown) {
-                    this.shoot();
-                    this.lastShot = now;
-                }
-                
-                this.draw();
-            }
-
-            shoot() {
-                const angle = Math.atan2(player.position.y - this.position.y, player.position.x - this.position.x);
-                const speed = 3;
-                projectiles.push(new EnemyProjectile(
-                    this.position.x,
-                    this.position.y,
-                    Math.cos(angle) * speed,
-                    Math.sin(angle) * speed
-                ));
-            }
-        }
-
-        // --- Enemy Projectile ---
-        class EnemyProjectile extends Projectile {
-            constructor(x, y, vx, vy) {
-                super(x, y, vx, vy);
-                this.color = '#ff6b6b';
-                this.damage = 20;
-            }
-        }
-
-        // --- Power-up Class ---
-        class PowerUp {
-            constructor(x, y, type) {
-                this.position = { x, y };
-                this.velocity = { x: 0, y: 2 };
-                this.type = type;
-                this.size = 20;
-                this.colors = {
-                    health: '#96ceb4',
-                    rapidFire: '#ff6b6b',
-                    shield: '#4ecdc4',
-                    multiShot: '#45b7d1'
-                };
-                this.color = this.colors[type];
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.position.x - this.size/2, this.position.y - this.size/2, this.size, this.size);
-                
-                // Icon
-                ctx.fillStyle = '#fff';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'center';
-                const icons = { health: '♥', rapidFire: '⚡', shield: '🛡', multiShot: '🎯' };
-                ctx.fillText(icons[this.type], this.position.x, this.position.y + 5);
-            }
-
-            update() {
-                this.position.y += this.velocity.y;
-                this.draw();
-            }
-        }
-
-        // --- Particle Class ---
-        class Particle {
-            constructor(x, y, radius, color, velocity) {
-                this.position = { x, y };
-                this.velocity = velocity;
-                this.radius = radius;
-                this.color = color;
-                this.opacity = 1;
-                this.friction = 0.98;
-                this.gravity = 0.1;
-            }
-
-            draw() {
-                ctx.save();
-                ctx.globalAlpha = this.opacity;
-                ctx.beginPath();
-                ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
-                ctx.restore();
-            }
-
-            update() {
-                this.velocity.x *= this.friction;
-                this.velocity.y *= this.friction;
-                this.velocity.y += this.gravity;
-                this.position.x += this.velocity.x;
-                this.position.y += this.velocity.y;
-                this.opacity -= 0.02;
-                this.draw();
-            }
-        }
-
-        // --- Spawning Functions ---
-        function spawnEnemies() {
-            spawnInterval = setInterval(() => {
-                if (gameState !== GAME_STATES.PLAYING) return;
-                
-                const enemyTypes = [Asteroid, FastEnemy, TankEnemy];
-                const weights = [0.6, 0.3, 0.1]; // Probability weights
-                
-                let random = Math.random();
-                let selectedType = 0;
-                for (let i = 0; i < weights.length; i++) {
-                    random -= weights[i];
-                    if (random <= 0) {
-                        selectedType = i;
-                        break;
-                    }
-                }
-                
-                const EnemyClass = enemyTypes[selectedType];
-                const x = Math.random() < 0.5 ? 0 - 50 : canvas.width + 50;
-                const y = Math.random() * canvas.height * 0.3;
-                
-                enemies.push(new EnemyClass(x, y));
-            }, 1500 - level * 100); // Faster spawning with level
-        }
-
-        function spawnBoss() {
-            if (level % 5 === 0) {
-                showBossWarning();
-                setTimeout(() => {
-                    enemies.push(new BossEnemy());
-                }, 3000);
-            }
-        }
-
-        function spawnPowerUps() {
-            setInterval(() => {
-                if (gameState !== GAME_STATES.PLAYING) return;
-                if (Math.random() < 0.1) { // 10% chance
-                    const types = ['health', 'rapidFire', 'shield', 'multiShot'];
-                    const type = types[Math.floor(Math.random() * types.length)];
-                    const x = Math.random() * canvas.width;
-                    powerUps.push(new PowerUp(x, -20, type));
-                }
-            }, 5000);
-        }
-
-        // --- UI Functions ---
-        function updateUI() {
-            scoreEl.innerHTML = score;
-            levelEl.innerHTML = level;
-            healthEl.innerHTML = Math.ceil(player.health);
-            healthFill.style.width = (player.health / player.maxHealth * 100) + '%';
-        }
-
-        function updatePowerUpIndicator() {
-            powerUpIndicator.innerHTML = '';
-            Object.keys(player.powerUpTimers).forEach(key => {
-                if (player.powerUpTimers[key] > 0) {
-                    const icon = document.createElement('div');
-                    icon.className = `powerUpIcon ${key}`;
-                    icon.innerHTML = Math.ceil(player.powerUpTimers[key] / 1000);
-                    powerUpIndicator.appendChild(icon);
-                }
-            });
-        }
-
-        function showBossWarning() {
-            const warning = document.createElement('div');
-            warning.className = 'bossWarning';
-            warning.innerHTML = 'BOSS INCOMING!';
-            document.getElementById('gameContainer').appendChild(warning);
-            setTimeout(() => warning.remove(), 3000);
-        }
-
-        function showLevelUp() {
-            const levelUp = document.createElement('div');
-            levelUp.className = 'levelUp';
-            levelUp.innerHTML = `LEVEL ${level}!`;
-            document.getElementById('gameContainer').appendChild(levelUp);
-            setTimeout(() => levelUp.remove(), 2000);
-        }
-
-        // --- Collision Detection ---
-        function checkCollisions() {
-            // Player vs Enemy Projectiles
-            projectiles.forEach((projectile, pIndex) => {
-                if (projectile instanceof EnemyProjectile) {
-                    const dist = Math.hypot(player.position.x - projectile.position.x, player.position.y - projectile.position.y);
-                    if (dist < player.width / 2 + projectile.radius) {
-                        if (player.takeDamage(projectile.damage)) {
-                            gameOver();
-                        }
-                        projectiles.splice(pIndex, 1);
-                        createExplosion(projectile.position.x, projectile.position.y, '#ff6b6b');
-                    }
-                }
-            });
-
-            // Player vs Enemies
-            enemies.forEach((enemy, eIndex) => {
-                const dist = Math.hypot(player.position.x - enemy.position.x, player.position.y - enemy.position.y);
-                if (dist < player.width / 2 + enemy.size / 2) {
-                    if (player.takeDamage(50)) {
-                        gameOver();
-                    }
-                    enemies.splice(eIndex, 1);
-                    createExplosion(enemy.position.x, enemy.position.y, enemy.color);
-                }
-            });
-
-            // Projectiles vs Enemies
-            projectiles.forEach((projectile, pIndex) => {
-                if (projectile instanceof EnemyProjectile) return;
-                
-                enemies.forEach((enemy, eIndex) => {
-                    const dist = Math.hypot(projectile.position.x - enemy.position.x, projectile.position.y - enemy.position.y);
-                    if (dist < enemy.size / 2 + projectile.radius) {
-                        if (enemy.takeDamage(projectile.damage)) {
-                            score += enemy.scoreValue;
-                            enemies.splice(eIndex, 1);
-                            createExplosion(enemy.position.x, enemy.position.y, enemy.color);
-                            
-                            // Check for level up
-                            if (score >= level * 1000) {
-                                levelUp();
-                            }
-                        }
-                        projectiles.splice(pIndex, 1);
-                    }
-                });
-            });
-
-            // Player vs Power-ups
-            powerUps.forEach((powerUp, pIndex) => {
-                const dist = Math.hypot(player.position.x - powerUp.position.x, player.position.y - powerUp.position.y);
-                if (dist < player.width / 2 + powerUp.size / 2) {
-                    applyPowerUp(powerUp.type);
-                    powerUps.splice(pIndex, 1);
-                }
-            });
-        }
-
-        function applyPowerUp(type) {
-            switch (type) {
-                case 'health':
-                    player.heal(50);
-                    break;
-                case 'rapidFire':
-                    player.rapidFire = true;
-                    player.shootCooldown = 150;
-                    player.powerUpTimers.rapidFire = 10000; // 10 seconds
-                    break;
-                case 'shield':
-                    player.shield = true;
-                    player.powerUpTimers.shield = 8000; // 8 seconds
-                    break;
-                case 'multiShot':
-                    player.multiShot = true;
-                    player.powerUpTimers.multiShot = 12000; // 12 seconds
-                    break;
-            }
-            updatePowerUpIndicator();
-        }
-
-        function createExplosion(x, y, color) {
-            for (let i = 0; i < 15; i++) {
-                particles.push(new Particle(
-                    x, y, Math.random() * 3 + 1, color,
-                    { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 8 }
-                ));
-            }
-        }
-
-        function levelUp() {
-            level++;
-            showLevelUp();
-            spawnBoss();
-            updateUI();
-        }
-
-        function gameOver() {
-            gameState = GAME_STATES.GAME_OVER;
-            clearInterval(spawnInterval);
-            cancelAnimationFrame(animationId);
-            
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('spaceDefenderHighScore', highScore);
-            }
-            
-            finalScoreEl.innerHTML = score;
-            finalLevelEl.innerHTML = level;
-            highScoreEl.innerHTML = highScore;
-            gameOverText.innerHTML = 'Game Over!';
-            modalEl.style.display = 'flex';
-        }
-
-        // --- Animation Loop ---
-        function animate() {
-            if (gameState !== GAME_STATES.PLAYING) return;
-            
-            animationId = requestAnimationFrame(animate);
-            ctx.fillStyle = 'rgba(12, 12, 12, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            player.update();
-
-            // Update particles
-            particles.forEach((particle, index) => {
-                if (particle.opacity <= 0) {
-                    particles.splice(index, 1);
-                } else {
-                    particle.update();
-                }
-            });
-
-            // Update projectiles
-            projectiles.forEach((projectile, pIndex) => {
-                projectile.update();
-                if (projectile.position.y + projectile.radius < 0 || 
-                    projectile.position.y - projectile.radius > canvas.height ||
-                    projectile.position.x + projectile.radius < 0 ||
-                    projectile.position.x - projectile.radius > canvas.width) {
-                    projectiles.splice(pIndex, 1);
-                }
-            });
-
-            // Update enemies
-            enemies.forEach((enemy, eIndex) => {
-                enemy.update();
-                if (enemy.position.y > canvas.height + 100) {
-                    enemies.splice(eIndex, 1);
-                }
-            });
-
-            // Update power-ups
-            powerUps.forEach((powerUp, pIndex) => {
-                powerUp.update();
-                if (powerUp.position.y > canvas.height + 50) {
-                    powerUps.splice(pIndex, 1);
-                }
-            });
-
-            checkCollisions();
-        }
-
-        // --- Controls ---
-        const keys = {
-            ArrowLeft: { pressed: false },
-            ArrowRight: { pressed: false }
         };
+        reader.readAsArrayBuffer(file);
+    }
+);
 
-        window.addEventListener('keydown', (e) => {
-            if (gameState !== GAME_STATES.PLAYING) return;
-            
-            switch (e.key) {
-                case 'ArrowLeft':
-                    keys.ArrowLeft.pressed = true;
-                    player.velocity.x = -player.speed;
-                    break;
-                case 'ArrowRight':
-                    keys.ArrowRight.pressed = true;
-                    player.velocity.x = player.speed;
-                    break;
-                case ' ':
-                    player.shoot();
-                    break;
-                case 'p':
-                case 'P':
-                    togglePause();
-                    break;
-            }
-        });
+// Restore dashboard from localStorage
+const savedDashboard = localStorage.getItem('dashboardData');
+if (savedDashboard) {
+    try {
+        workbookData = JSON.parse(savedDashboard);
+        renderDashboard(Object.keys(workbookData)[0]);
+    } catch (e) { /* ignore */ }
+}
 
-        window.addEventListener('keyup', (e) => {
-            switch (e.key) {
-                case 'ArrowLeft':
-                    keys.ArrowLeft.pressed = false;
-                    if (!keys.ArrowRight.pressed) player.velocity.x = 0;
-                    break;
-                case 'ArrowRight':
-                    keys.ArrowRight.pressed = false;
-                    if (!keys.ArrowLeft.pressed) player.velocity.x = 0;
-                    break;
-            }
-        });
+// ══════════════════════════════════════
+//  BLOG
+// ══════════════════════════════════════
+let blogPosts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+let blogCoverData = null;
 
-        function togglePause() {
-            if (gameState === GAME_STATES.PLAYING) {
-                gameState = GAME_STATES.PAUSED;
-                cancelAnimationFrame(animationId);
-            } else if (gameState === GAME_STATES.PAUSED) {
-                gameState = GAME_STATES.PLAYING;
-                animate();
-            }
+function saveBlogPosts() {
+    localStorage.setItem('blogPosts', JSON.stringify(blogPosts));
+}
+
+// Cover image upload
+setupDropZone(
+    document.getElementById('blog-img-zone'),
+    document.getElementById('blog-img-file'),
+    files => {
+        const file = files[0];
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select an image file', 'error');
+            return;
         }
-        
-        // --- Restart Game ---
-        restartButton.addEventListener('click', () => {
-            modalEl.style.display = 'none';
-            init();
-            animate();
-            spawnEnemies();
-            spawnPowerUps();
-        });
+        const reader = new FileReader();
+        reader.onload = e => {
+            blogCoverData = e.target.result;
+            const preview = document.getElementById('blog-img-preview');
+            preview.src = blogCoverData;
+            preview.style.display = 'block';
+            document.getElementById('blog-img-zone').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+);
 
-        // --- Start Game ---
-        init();
-        animate();
-        spawnEnemies();
-        spawnPowerUps();
-    </script>
+document.getElementById('publish-blog-btn').addEventListener('click', () => {
+    const title = document.getElementById('blog-title').value.trim();
+    const author = document.getElementById('blog-author').value.trim();
+    const content = document.getElementById('blog-content').value.trim();
+    const category = document.getElementById('blog-category').value;
+
+    if (!title || !content) {
+        showToast('Title and content are required', 'error');
+        return;
+    }
+
+    const post = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        title,
+        author: author || 'Anonymous',
+        content,
+        category,
+        date: new Date().toLocaleDateString(),
+        timestamp: Date.now(),
+        cover: blogCoverData || null
+    };
+
+    blogPosts.unshift(post);
+    saveBlogPosts();
+    renderBlogPosts();
+    showToast('Blog post published!');
+
+    // Reset form
+    document.getElementById('blog-title').value = '';
+    document.getElementById('blog-author').value = '';
+    document.getElementById('blog-content').value = '';
+    document.getElementById('blog-category').value = 'General';
+    blogCoverData = null;
+    document.getElementById('blog-img-preview').style.display = 'none';
+    document.getElementById('blog-img-zone').style.display = '';
+});
+
+function openBlogModal(id) {
+    const post = blogPosts.find(p => p.id === id);
+    if (!post) return;
+    document.getElementById('modal-title').textContent = post.title;
+    document.getElementById('modal-author').textContent = 'By ' + post.author;
+    document.getElementById('modal-date').textContent = post.date;
+    document.getElementById('modal-category').textContent = post.category;
+    document.getElementById('modal-body').textContent = post.content;
+
+    const modalImg = document.getElementById('modal-img');
+    if (post.cover) {
+        modalImg.src = post.cover;
+        modalImg.style.display = 'block';
+    } else {
+        modalImg.style.display = 'none';
+    }
+
+    document.getElementById('blog-modal').classList.add('visible');
+}
+
+document.getElementById('modal-close-btn').addEventListener('click', () => {
+    document.getElementById('blog-modal').classList.remove('visible');
+});
+
+document.getElementById('blog-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) {
+        document.getElementById('blog-modal').classList.remove('visible');
+    }
+});
+
+function deleteBlog(id, event) {
+    event.stopPropagation();
+    blogPosts = blogPosts.filter(p => p.id !== id);
+    saveBlogPosts();
+    renderBlogPosts();
+    showToast('Blog post deleted');
+}
+
+const categoryIcons = {
+    General: '&#128196;',
+    Tech: '&#128187;',
+    Lifestyle: '&#127796;',
+    Business: '&#128188;',
+    Education: '&#127891;'
+};
+
+function renderBlogPosts() {
+    const grid = document.getElementById('blog-grid');
+    const empty = document.getElementById('blog-empty');
+
+    if (blogPosts.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    grid.innerHTML = blogPosts.map(post => `
+        <div class="blog-card" onclick="openBlogModal('${post.id}')">
+            ${post.cover
+                ? `<img class="blog-card-img" src="${post.cover}" alt="">`
+                : `<div class="blog-card-placeholder">${categoryIcons[post.category] || '&#128196;'}</div>`
+            }
+            <div class="blog-card-body">
+                <span class="tag">${escapeHtml(post.category)}</span>
+                <h3>${escapeHtml(post.title)}</h3>
+                <p>${escapeHtml(post.content)}</p>
+            </div>
+            <div class="blog-card-footer">
+                <span>By ${escapeHtml(post.author)} &middot; ${post.date}</span>
+                <button class="btn btn-danger btn-sm" onclick="deleteBlog('${post.id}', event)">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+renderBlogPosts();
+</script>
 </body>
 </html>
